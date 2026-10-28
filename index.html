@@ -3,12 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="AI Warehouse Robot Simulator – Real-Time A* Pathfinding with Dynamic Obstacle Avoidance. An interactive college-level demonstration.">
-    <title>AI Warehouse Robot – Dynamic Obstacle Avoidance</title>
+    <meta name="description" content="AI Warehouse Robot 3D Simulator – Real-Time A* Pathfinding with Dynamic Obstacle Avoidance. An interactive 3D college-level demonstration.">
+    <title>AI Warehouse Robot – 3D Dynamic Obstacle Avoidance</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <!-- Three.js & OrbitControls for interactive 3D rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
 
@@ -16,12 +19,12 @@
     <header id="main-header">
         <div class="header-content">
             <div class="header-titles">
-                <h1>AI Warehouse Robot<span class="accent-dot">:</span> Dynamic Obstacle Avoidance</h1>
-                <p class="subtitle">Real-Time A* Pathfinding &amp; Autonomous Navigation Simulator</p>
+                <h1>AI Warehouse Robot<span class="accent-dot">:</span> 3D Dynamic Obstacle Avoidance</h1>
+                <p class="subtitle">Interactive Real-Time A* Pathfinding &amp; Autonomous AGV Navigation</p>
             </div>
             <div class="header-badge">
-                <span class="badge-icon">🤖</span>
-                <span class="badge-text">AI&nbsp;Pathfinding</span>
+                <span class="badge-icon">🌐</span>
+                <span class="badge-text">3D&nbsp;WebGL&nbsp;Simulation</span>
             </div>
         </div>
     </header>
@@ -41,6 +44,16 @@
                     <button id="btn-reset"   class="btn btn-danger"   title="Reset everything">↺ Reset</button>
                     <button id="btn-step"    class="btn btn-secondary" title="Advance one step" disabled>⏭ Step</button>
                     <button id="btn-trigger" class="btn btn-obstacle" title="Place obstacle on robot's path">⚡ Trigger&nbsp;Obstacle</button>
+                </div>
+            </section>
+
+            <section class="ctrl-group">
+                <h2 class="panel-title"><span class="icon">🎥</span> 3D Camera Views</h2>
+                <div class="btn-grid">
+                    <button id="btn-cam-iso"    class="btn btn-secondary btn-cam active" title="Isometric 3D View">📐 Iso</button>
+                    <button id="btn-cam-top"    class="btn btn-secondary btn-cam" title="Top-Down Plan View">⬆ Top</button>
+                    <button id="btn-cam-chase"  class="btn btn-secondary btn-cam" title="Chase Cam following Robot">🤖 Chase</button>
+                    <button id="btn-cam-reset"  class="btn btn-secondary btn-cam" title="Reset Camera Orbit">↺ Reset</button>
                 </div>
             </section>
 
@@ -95,16 +108,17 @@
                 </label>
                 <label class="toggle-row">
                     <input id="chk-edit-obs" type="checkbox">
-                    <span>Click Grid to Add/Remove&nbsp;Obstacle</span>
+                    <span>Click 3D Grid to Add/Remove&nbsp;Obstacle</span>
                 </label>
             </section>
         </aside>
 
-        <!-- ── CENTER: Warehouse Grid ── -->
+        <!-- ── CENTER: 3D Warehouse Viewport ── -->
         <section class="center-col" id="center-col">
             <div class="canvas-wrap" id="canvas-wrap">
                 <canvas id="warehouse-canvas"></canvas>
                 <div id="grid-overlay-msg" class="grid-overlay-msg hidden"></div>
+                <div class="viewport-3d-hint">🖱 Left Click: Orbit • Right Click: Pan • Scroll: Zoom • Click Floor: Place Obstacle</div>
             </div>
 
             <!-- Legend -->
@@ -112,12 +126,12 @@
                 <h3>Legend</h3>
                 <div class="legend-items">
                     <div class="legend-item"><span class="lc" id="lc-floor"></span>Floor</div>
-                    <div class="legend-item"><span class="lc" id="lc-shelf"></span>Shelf</div>
+                    <div class="legend-item"><span class="lc" id="lc-shelf"></span>Racks</div>
                     <div class="legend-item"><span class="lc" id="lc-dispatch"></span>Dispatch</div>
                     <div class="legend-item"><span class="lc" id="lc-pkg"></span>Package</div>
                     <div class="legend-item"><span class="lc" id="lc-collected"></span>Collected</div>
-                    <div class="legend-item"><span class="lc" id="lc-robot"></span>Robot</div>
-                    <div class="legend-item"><span class="lc" id="lc-path"></span>Path</div>
+                    <div class="legend-item"><span class="lc" id="lc-robot"></span>AGV Robot</div>
+                    <div class="legend-item"><span class="lc" id="lc-path"></span>A* Path</div>
                     <div class="legend-item"><span class="lc" id="lc-explored"></span>Explored</div>
                     <div class="legend-item"><span class="lc" id="lc-frontier"></span>Frontier</div>
                     <div class="legend-item"><span class="lc" id="lc-obstacle"></span>Obstacle</div>
@@ -126,7 +140,7 @@
             </div>
         </section>
 
-        <!-- ── RIGHT PANEL: Stats + Log + Explanation ── -->
+        <!-- ── RIGHT PANEL: Stats + Explanation (Event Log Removed) ── -->
         <aside class="panel panel-right" id="panel-right">
 
             <!-- Statistics -->
@@ -148,28 +162,40 @@
                 </div>
             </section>
 
-            <!-- Event Log -->
-            <section class="log-section">
-                <h2 class="panel-title"><span class="icon">📜</span> Event Log</h2>
-                <div id="event-log" class="event-log"></div>
+            <!-- Explanation & Live AI Status Panel -->
+            <section class="explain-section">
+                <h2 class="panel-title"><span class="icon">💡</span> Live AI Intelligence</h2>
+                <div class="ai-status-card">
+                    <div class="ai-status-indicator">
+                        <span class="ai-pulse-dot" id="ai-pulse-dot"></span>
+                        <span id="ai-mode-label" class="ai-mode-label">STANDBY</span>
+                    </div>
+                    <p id="explanation" class="explanation-text">The robot is idle. Select a scenario and click <strong>Start</strong> to begin 3D navigation.</p>
+                </div>
             </section>
 
-            <!-- Explanation Panel -->
-            <section class="explain-section">
-                <h2 class="panel-title"><span class="icon">💡</span> What's Happening</h2>
-                <p id="explanation" class="explanation-text">The robot is idle. Select a scenario and click <strong>Start</strong> to begin the mission.</p>
+            <!-- 3D Feature Highlights for Presentation -->
+            <section class="features-section">
+                <h2 class="panel-title"><span class="icon">✨</span> 3D Simulation Features</h2>
+                <ul class="feature-bullets">
+                    <li><strong>3D AGV Robot:</strong> Directional steering, rotating LiDAR scanner, spinning wheels &amp; dynamic LED ring.</li>
+                    <li><strong>Dynamic Obstacles:</strong> 3D hazard barricades drop down in real time to intercept paths.</li>
+                    <li><strong>Cargo Animation:</strong> Packages smoothly hoist and dock into the robot's cargo bed.</li>
+                    <li><strong>Real-time A* Detours:</strong> Glowing cyan path updates instantly around dynamic blockages.</li>
+                </ul>
             </section>
+
         </aside>
     </main>
 
     <!-- ═══════════ FOOTER: A* Explanation ═══════════ -->
     <footer id="main-footer">
         <div class="algo-box">
-            <h3>A* Pathfinding Algorithm</h3>
+            <h3>A* Pathfinding Algorithm in 3D Space</h3>
             <div class="formula"><strong>f(n) = g(n) + h(n)</strong></div>
             <div class="formula-terms">
                 <div><code>g(n)</code> — Actual cost from the <em>start</em> to the current cell.</div>
-                <div><code>h(n)</code> — Estimated cost from the current cell to the <em>goal</em> (Manhattan&nbsp;Distance: |Δrow| + |Δcol|).</div>
+                <div><code>h(n)</code> — Estimated cost to the <em>goal</em> (Manhattan&nbsp;Distance: |Δrow| + |Δcol|).</div>
                 <div><code>f(n)</code> — Total estimated cost of the cheapest path through this cell.</div>
             </div>
             <p class="algo-note">A* always expands the cell with the lowest <code>f(n)</code>. Using Manhattan distance as an admissible heuristic guarantees the shortest path on a 4-directional grid.</p>
